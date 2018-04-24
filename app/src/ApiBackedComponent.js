@@ -11,8 +11,8 @@ class ApiBackedComponent extends React.Component {
   }
 
   componentDidMount() {
-//    fetch(`${process.env.PUBLIC_URL}/api`)
-    fetch("/api")
+//    fetch("/api")
+    fetch(`${process.env.PUBLIC_URL}/api`)
     .then(res => res.json())
     .then(
       (result) => {

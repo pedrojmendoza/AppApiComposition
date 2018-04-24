@@ -35,3 +35,6 @@ docker push 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest
 
 docker tag ok-api:latest 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
 docker push 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
+
+# ecs
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<cluster_dns>/app1
