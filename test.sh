@@ -37,5 +37,9 @@ docker tag ok-api:latest 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:lat
 docker push 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
 
 # ecs
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<cluster_dns>/
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<cluster_dns>/app1
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<service_dns>/
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<service_dns>/app1
+
+# load test -> to test scale-out, scale-in
+# set the TargetCpuUtilization to 10
+ab -n 1000000 -c 500 http://<service_dns>/api

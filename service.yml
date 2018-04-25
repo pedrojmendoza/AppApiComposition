@@ -44,7 +44,19 @@ Parameters:
   DesiredCount:
     Type: Number
     Default: 2
-    Description: How many copies of the service task to run
+    Description: How many (desired) copies of the service task to run
+  MinCount:
+    Type: Number
+    Default: 1
+    Description: How many (min) copies of the service task to run
+  MaxCount:
+    Type: Number
+    Default: 10
+    Description: How many (max) copies of the service task to run
+  TargetCpuUtilization:
+    Type: Number
+    Default: 70
+    Description: Target average CPU utilization for the service (used for automatic scale-out and scale-in)
   Role:
     Type: String
     Default: ""
@@ -173,6 +185,50 @@ Resources:
       LoadBalancerArn: !Ref 'PublicLoadBalancer'
       Port: 80
       Protocol: HTTP
+
+  # Auto-scaling artifacts
+  AutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm', 'ecs:DescribeServices', 'ecs:UpdateService']
+            Resource: '*'
+  ServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: Service
+    Properties:
+      MaxCapacity: !Ref 'MaxCount'
+      MinCapacity: !Ref 'MinCount'
+      ResourceId:
+        Fn::Sub:
+          - service/${ClusterName}/${ServiceName}
+          - ClusterName:
+              Fn::ImportValue: !Join [':', [!Ref 'StackName', 'ClusterName']]
+            ServiceName: !GetAtt [Service, Name]
+      RoleARN: !GetAtt [AutoscalingRole, Arn]
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  ServiceScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Ref 'ServiceName'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref 'ServiceScalingTarget'
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: !Ref 'TargetCpuUtilization'
 
 # These are the values output by the CloudFormation template. Be careful
 # about changing any of them, because of them are exported with specific
