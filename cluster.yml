@@ -199,6 +199,13 @@ Resources:
                 - 'logs:PutLogEvents'
               Resource: '*'
 
+  # CloudWatch Logs (pre-condition for tasks logging)
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+
 # These are the values output by the CloudFormation template. Be careful
 # about changing any of them, because of them are exported with specific
 # names so that the other task related CF templates can use them.
@@ -243,3 +250,8 @@ Outputs:
     Value: !Ref 'FargateContainerSecurityGroup'
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'FargateContainerSecurityGroup' ] ]
+  CloudwatchLogsGroup:
+    Description: A CloudWatch Log Group to be used by the tasks for logging
+    Value: !Ref 'CloudwatchLogsGroup'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'CloudwatchLogsGroup' ] ]
