@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 @EnableAutoConfiguration
 public class ItemsController {
 
-  //@RequestMapping("/api")
-  @RequestMapping("/app1/api")
+  //@RequestMapping("/app1/api")
+  @RequestMapping("/api")
   public @ResponseBody ItemsList produceItems() {
       ItemsList items = new ItemsList();
       items.addItem(new Item(1, "Apples", "$2"));

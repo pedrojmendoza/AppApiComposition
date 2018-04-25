@@ -8,25 +8,39 @@ Parameters:
                  to locate and reference resources created by that stack.
   ServiceName:
     Type: String
-    Default: nginx
+    Default: "Service1"
     Description: A name for the service
-  ImageUrl:
+  AppImageUrl:
     Type: String
-    Default: nginx
-    Description: The url of a docker image that contains the application process that
-                 will handle the traffic for this service
+    Default: ""
+    Description: The url of a docker image that contains the application process
+                 (container app) that will handle the traffic for this service
+  ApiImageUrl:
+    Type: String
+    Default: ""
+    Description: The url of a docker image that contains the API process
+                 (container api) that will handle the traffic for this service
   ContainerPort:
     Type: Number
     Default: 80
-    Description: What port number the application inside the docker container is binding to
+    Description: What port number the application inside the docker container (app)
+                 is binding to
+  TaskCpu:
+    Type: Number
+    Default: 512
+    Description: How much CPU to give the overall container. 1024 is 1 CPU
+  TaskMemory:
+    Type: Number
+    Default: 1024
+    Description: How much memory in megabytes to give the overall task
   ContainerCpu:
     Type: Number
     Default: 256
-    Description: How much CPU to give the container. 1024 is 1 CPU
+    Description: How much CPU to give each container. 1024 is 1 CPU
   ContainerMemory:
     Type: Number
     Default: 512
-    Description: How much memory in megabytes to give the container
+    Description: How much memory in megabytes to give each container
   Path:
     Type: String
     Default: "*"
@@ -55,13 +69,13 @@ Conditions:
 Resources:
 
   # The task definition. This is a simple metadata description of what
-  # container to run, and what resource requirements it has.
+  # containers to run, and what resource requirements it has.
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref 'ServiceName'
-      Cpu: !Ref 'ContainerCpu'
-      Memory: !Ref 'ContainerMemory'
+      Cpu: !Ref 'TaskCpu'
+      Memory: !Ref 'TaskMemory'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -74,12 +88,16 @@ Resources:
           - !Ref 'Role'
           - !Ref "AWS::NoValue"
       ContainerDefinitions:
-        - Name: !Ref 'ServiceName'
+        - Name: app
           Cpu: !Ref 'ContainerCpu'
           Memory: !Ref 'ContainerMemory'
-          Image: !Ref 'ImageUrl'
+          Image: !Ref 'AppImageUrl'
           PortMappings:
             - ContainerPort: !Ref 'ContainerPort'
+        - Name: api
+          Cpu: !Ref 'ContainerCpu'
+          Memory: !Ref 'ContainerMemory'
+          Image: !Ref 'ApiImageUrl'
 
   # The service. The service is a resource which allows you to run multiple
   # copies of a type of task, and gather up their logs and metrics, as well
@@ -110,7 +128,7 @@ Resources:
                 !Join [':', [!Ref 'StackName', 'PublicSubnetTwo']]
       TaskDefinition: !Ref 'TaskDefinition'
       LoadBalancers:
-        - ContainerName: !Ref 'ServiceName'
+        - ContainerName: 'app'
           ContainerPort: !Ref 'ContainerPort'
           TargetGroupArn: !Ref 'TargetGroup'
 
