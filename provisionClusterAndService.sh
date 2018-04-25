@@ -1,4 +1,4 @@
-// creating
+# creating
 aws cloudformation create-stack --stack-name OkCluster --template-body file://cluster.yml --capabilities CAPABILITY_IAM
 
 aws cloudformation create-stack --stack-name OkService1 --template-body file://service.yml --parameters \
@@ -7,10 +7,10 @@ aws cloudformation create-stack --stack-name OkService1 --template-body file://s
   ParameterKey=AppImageUrl,ParameterValue=264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest \
   ParameterKey=ApiImageUrl,ParameterValue=264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
 
-// describing
-aws cloudformation describe-stacks --stack-name OkCluster | jq '.Stacks[0].Outputs[] | select(.OutputKey == "ExternalUrl") | .OutputValue'
+# describing
+aws cloudformation describe-stacks --stack-name OkService1 | jq '.Stacks[0].Outputs[] | select(.OutputKey == "ExternalUrl") | .OutputValue'
 
-// removing
+# removing
 aws cloudformation delete-stack --stack-name OkService1
-// remove services created SGs within relevant VPC
+# remove services created SGs within relevant VPC
 aws cloudformation delete-stack --stack-name OkCluster
