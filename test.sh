@@ -27,7 +27,7 @@ docker-compose up -d
 docker-compose ps
 docker-compose down
 
-# ecr
+# deploy images to ECR
 $(aws ecr get-login --no-include-email --region us-east-1)
 
 docker tag ok-app:latest 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest
@@ -36,7 +36,7 @@ docker push 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest
 docker tag ok-api:latest 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
 docker push 264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest
 
-# ecs
+# test containers deployed to ECS
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<service_dns>/
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome http://<service_dns>/app1
 

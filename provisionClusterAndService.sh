@@ -10,7 +10,8 @@ aws cloudformation create-stack --stack-name OkService1 --template-body file://s
 # describing
 aws cloudformation describe-stacks --stack-name OkService1 | jq '.Stacks[0].Outputs[] | select(.OutputKey == "ExternalUrl") | .OutputValue'
 
-# removing
+# removing service
 aws cloudformation delete-stack --stack-name OkService1
-# remove services created SGs within relevant VPC
+
+# removing cluster/vpc
 aws cloudformation delete-stack --stack-name OkCluster

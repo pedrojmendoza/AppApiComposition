@@ -113,6 +113,11 @@ Resources:
                   !Join [':', [!Ref 'StackName', 'CloudwatchLogsGroup']]
               awslogs-region: !Ref 'AWS::Region'
               awslogs-stream-prefix: !Join ['-', [!Ref 'ServiceName', api]]
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - wget -O - localhost:8080/api || exit 1
+            StartPeriod: 30
   # The service. The service is a resource which allows you to run multiple
   # copies of a type of task, and gather up their logs and metrics, as well
   # as monitor the number of running tasks and replace any that have crashed
