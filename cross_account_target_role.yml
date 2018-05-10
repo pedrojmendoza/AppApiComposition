@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Configure the AWSCloudFormationCrossAccountExecutionRole to enable use of your account as a target account in AWS CloudFormation.
+
+Parameters:
+  AuthorizedAccountId:
+    Type: String
+    Description: AWS Account Id of the administrator account (the account invoking CFN stacks CRUD).
+    MaxLength: 12
+    MinLength: 12
+  AuthorizedRoleName:
+    Type: String
+    Description: Role name being used within the administrator account (the account invoking CFN stacks CRUD).
+
+Resources:
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AWSCloudFormationCrossAccountExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub
+                  - arn:aws:iam::${Account}:role/${Role}
+                  - { Account: !Ref AuthorizedAccountId, Role: !Ref AuthorizedRoleName }
+            Action:
+              - sts:AssumeRole
+      Path: /
+  ExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AWSCloudFormationCrossAccountExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudformation:*
+              - iam:*
+              - logs:*
+              - ecs:*
+              - ec2:*
+              - elasticloadbalancing:*
+              - application-autoscaling:*
+            Resource: "*"
+      Roles:
+        - !Ref ExecutionRole
