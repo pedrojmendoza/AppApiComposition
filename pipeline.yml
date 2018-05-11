@@ -1,0 +1,331 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Setup AWS global resources for CI/CD - (c) 2017 Amazon Web Services, Inc. or its affiliates. All Rights Reserved. This AWS Content is provided subject to the terms of the AWS Customer Agreement available at http://aws.amazon.com/agreement or other written agreement between Customer and Amazon Web Services, Inc.
+
+Parameters:
+  ProjectName:
+    Description: Name of project
+    Type: String
+    Default: MyProject
+  OAuthToken:
+    Description: GitHub Repo Token
+    Type: String
+
+Resources:
+  codePipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub
+        - ${ProjectName}-CodePipeline-Service-Role
+        - { ProjectName: !Ref ProjectName }
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "codepipeline.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Sub
+            - ${ProjectName}-CodePipeline-Service-Policy
+            - { ProjectName: !Ref ProjectName }
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "ec2:*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:*"
+                  - "cloudwatch:*"
+                  - "s3:*"
+                  - "sns:*"
+                  - "cloudformation:*"
+                  - "ecs:*"
+                  - "iam:*"
+                  - "codebuild:*"
+                Resource: "*"
+
+  cloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub
+        - ${ProjectName}-CloudFormation-Service-Role
+        - { ProjectName: !Ref ProjectName }
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Sub
+            - ${ProjectName}-CloudFormation-Service-Policy
+            - { ProjectName: !Ref ProjectName }
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - cloudformation:*
+                  - iam:*
+                  - logs:*
+                  - ecs:*
+                  - ec2:*
+                  - elasticloadbalancing:*
+                  - application-autoscaling:*
+                Resource: "*"
+
+  codeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub
+        - ${ProjectName}-CodeBuild-Service-Role
+        - { ProjectName: !Ref ProjectName }
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Sub
+            - ${ProjectName}-CodeBuild-Service-Policy
+            - { ProjectName: !Ref ProjectName }
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:*"
+                  - "logs:*"
+                  - "ssm:*"
+                  - "ecr:*"
+                Resource: "*"
+
+  codePipelineS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join [ "-", [ !Ref ProjectName, codepipeline, !Ref "AWS::Region", !Ref "AWS::AccountId" ] ]
+
+  codeBuildS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join [ "-", [ !Ref ProjectName, codebuild, !Ref "AWS::Region", !Ref "AWS::AccountId" ] ]
+
+  codeBuildProjectApp:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/nodejs:8.11.0
+        Type: LINUX_CONTAINER
+      Name: !Join [ "", [ !Ref ProjectName, "-build-app" ] ]
+      ServiceRole: !GetAtt codeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: app/buildspec.build.yml
+
+  codePkgProjectApp:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/docker:17.09.0
+        Type: LINUX_CONTAINER
+      Name: !Join [ "", [ !Ref ProjectName, "-pkg-app" ] ]
+      ServiceRole: !GetAtt codeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: app/buildspec.docker.yml
+
+  codeBuildProjectApi:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/java:openjdk-8
+        Type: LINUX_CONTAINER
+      Name: !Join [ "", [ !Ref ProjectName, "-build-api" ] ]
+      ServiceRole: !GetAtt codeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/buildspec.build.yml
+
+  codePkgProjectApi:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/docker:17.09.0
+        Type: LINUX_CONTAINER
+      Name: !Join [ "", [ !Ref ProjectName, "-pkg-api" ] ]
+      ServiceRole: !GetAtt codeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/buildspec.docker.yml
+
+  codePipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref codePipelineS3
+      RoleArn: !GetAtt codePipelineRole.Arn
+      Name: !Ref ProjectName
+      Stages:
+        -
+          Name: Source
+          Actions:
+            -
+              Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                -
+                  Name: MyApp
+              Configuration:
+                Owner: pedrojmendoza
+                Repo: AppApiComposition
+                PollForSourceChanges: false
+                Branch: master
+                OAuthToken: !Ref OAuthToken
+              RunOrder: 1
+        -
+          Name: Build
+          Actions:
+            -
+              Name: Build-App
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeBuild
+              OutputArtifacts:
+                -
+                  Name: MyAppBuild
+              InputArtifacts:
+                -
+                  Name: MyApp
+              Configuration:
+                  ProjectName: !Ref codeBuildProjectApp
+              RunOrder: 1
+            -
+              Name: Build-Api
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeBuild
+              OutputArtifacts:
+                -
+                  Name: MyApiBuild
+              InputArtifacts:
+                -
+                  Name: MyApp
+              Configuration:
+                  ProjectName: !Ref codeBuildProjectApi
+              RunOrder: 1
+        -
+          Name: Package
+          Actions:
+            -
+              Name: Package-App
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeBuild
+              OutputArtifacts:
+                -
+                  Name: MyAppPkg
+              InputArtifacts:
+                -
+                  Name: MyAppBuild
+              Configuration:
+                  ProjectName: !Ref codePkgProjectApp
+              RunOrder: 1
+            -
+              Name: Package-Api
+              ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Version: 1
+                  Provider: CodeBuild
+              OutputArtifacts:
+                -
+                  Name: MyApiPkg
+              InputArtifacts:
+                -
+                  Name: MyApiBuild
+              Configuration:
+                  ProjectName: !Ref codePkgProjectApi
+              RunOrder: 1
+        -
+          Name: Deploy
+          Actions:
+            -
+              Name: Deploy-Cluster
+              InputArtifacts:
+                -
+                  Name: MyApp
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                StackName: !Join [ "", [ !Ref ProjectName, "-cluster" ] ]
+                TemplatePath: "MyApp::cluster.yml"
+                Capabilities: CAPABILITY_IAM
+                RoleArn: !GetAtt cloudFormationRole.Arn
+              RunOrder: 1
+            -
+              Name: Deploy-Service
+              InputArtifacts:
+                -
+                  Name: MyApp
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                StackName: !Join [ "", [ !Ref ProjectName, "-service" ] ]
+                TemplatePath: "MyApp::service.yml"
+                Capabilities: CAPABILITY_IAM
+                RoleArn: !GetAtt cloudFormationRole.Arn
+                ParameterOverrides: |
+                  {
+                    "StackName":"ok-project1-cluster",
+                    "ServiceName":"ok-project1-service",
+                    "AppImageUrl":"264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest",
+                    "ApiImageUrl":"264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest"
+                  }
+              RunOrder: 2
