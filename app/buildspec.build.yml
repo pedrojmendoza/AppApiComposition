@@ -20,4 +20,5 @@ artifacts:
     - app/build/**/*
     - app/buildspec.docker.yml
     - app/Dockerfile
+    - app/infra/nginx.conf
     - app/commit_id.txt
