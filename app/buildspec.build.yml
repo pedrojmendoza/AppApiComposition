@@ -9,12 +9,10 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - cd app
       - CI=true npm test
   post_build:
     commands:
       - echo Post-Build started on `date`
-      - cd app
       - npm run build
       - echo $CODEBUILD_RESOLVED_SOURCE_VERSION > commit_id.txt
 artifacts:
