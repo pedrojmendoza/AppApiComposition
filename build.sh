@@ -1,3 +1,7 @@
+# install deps
+cd app
+npm install
+
 # run React app in local mode
 cd app
 npm start

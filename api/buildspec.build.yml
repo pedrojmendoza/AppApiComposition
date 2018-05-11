@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo Build started on `date`
+      - cd api
+      - mvn test
+  post_build:
+    commands:
+      - echo Post-Build started on `date`
+      - mvn package
+      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION > commit_id.txt
+artifacts:
+  files:
+    - api/target/myspringboot-0.0.1-SNAPSHOT.jar
+    - api/buildspec.docker.yml
+    - api/Dockerfile
+    - api/commit_id.txt
