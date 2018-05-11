@@ -321,11 +321,11 @@ Resources:
                 TemplatePath: "MyApp::service.yml"
                 Capabilities: CAPABILITY_IAM
                 RoleArn: !GetAtt cloudFormationRole.Arn
-                ParameterOverrides: |
+                ParameterOverrides: !Sub |
                   {
-                    "StackName":"ok-project1-cluster",
-                    "ServiceName":"ok-project1-service",
-                    "AppImageUrl":"264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest",
-                    "ApiImageUrl":"264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest"
+                    "StackName": "${ProjectName}-cluster",
+                    "ServiceName": "${ProjectName}-service",
+                    "AppImageUrl" : "264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-app:latest",
+                    "ApiImageUrl" : "264359801351.dkr.ecr.us-east-1.amazonaws.com/ok-api:latest"
                   }
               RunOrder: 2
