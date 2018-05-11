@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Pre-Build started on `date`
+      - cd app
+      - npm install
+  build:
+    commands:
+      - echo Build started on `date`
+      - cd app
+      - CI=true npm test
+  post_build:
+    commands:
+      - echo Post-Build started on `date`
+      - cd app
+      - npm run build
+      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION > commit_id.txt
+artifacts:
+  files:
+    - app/build/**/*
+    - app/buildspec.docker.yml
+    - app/Dockerfile
+    - app/commit_id.txt
